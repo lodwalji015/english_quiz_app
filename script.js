@@ -1,15 +1,36 @@
 const quizContainer = document.getElementById('quiz-container');
 const feedbackContainer = document.getElementById('feedback-container');
 
-// Fetch questions from backend
-async function loadQuiz() {
-    const response = await fetch('/questions');
-    const questions = await response.json();
+const questionsPool = [
+    {
+        question: "The quality of the fruits and vegetables ___ not good.",
+        options: ["are", "were", "is", "have been"],
+        correct: "is",
+        explanation: "The subject is 'quality,' which is singular, so we use 'is'."
+    },
+    {
+        question: "The Eiffel Tower is ___ unique structure in Paris.",
+        options: ["an", "a", "the", "no article"],
+        correct: "a",
+        explanation: "Use 'a' because 'unique' starts with a 'yu' sound, not a vowel sound."
+    },
+    // Add more questions here...
+];
 
-    questions.forEach((question) => {
+// Function to shuffle and select 20 questions
+function selectRandomQuestions(pool, numQuestions = 20) {
+    const shuffled = pool.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, numQuestions);
+}
+
+// Load and display quiz questions
+function loadQuiz() {
+    const selectedQuestions = selectRandomQuestions(questionsPool);
+
+    selectedQuestions.forEach((question, index) => {
         const questionDiv = document.createElement('div');
         questionDiv.className = 'question';
-        questionDiv.innerHTML = `<p>${question.question}</p>`;
+        questionDiv.innerHTML = `<p>${index + 1}. ${question.question}</p>`;
 
         const optionsDiv = document.createElement('div');
         optionsDiv.className = 'options';
@@ -17,41 +38,38 @@ async function loadQuiz() {
         question.options.forEach((option) => {
             const optionButton = document.createElement('button');
             optionButton.textContent = option;
-            optionButton.onclick = () => selectAnswer(question.id, option);
+            optionButton.onclick = () => selectAnswer(index, option);
             optionsDiv.appendChild(optionButton);
         });
 
         questionDiv.appendChild(optionsDiv);
         quizContainer.appendChild(questionDiv);
     });
+
+    // Save selected questions for checking answers
+    window.selectedQuestions = selectedQuestions;
 }
 
 const userAnswers = {};
 
-function selectAnswer(questionId, answer) {
-    userAnswers[questionId] = answer;
+function selectAnswer(questionIndex, answer) {
+    userAnswers[questionIndex] = answer;
 }
 
-// Submit quiz answers
-async function submitQuiz() {
-    const response = await fetch('/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: userAnswers }),
-    });
-    const feedback = await response.json();
-    displayFeedback(feedback);
-}
-
-function displayFeedback(feedback) {
+// Submit and check answers
+function submitQuiz() {
     feedbackContainer.innerHTML = '<h2>Feedback</h2>';
-    feedback.forEach((item) => {
+    window.selectedQuestions.forEach((question, index) => {
+        const isCorrect = userAnswers[index] === question.correct;
         const feedbackDiv = document.createElement('div');
         feedbackDiv.className = 'feedback';
-        feedbackDiv.innerHTML = `<p>Question ${item.question_id}: ${item.is_correct ? "Correct" : "Incorrect"}</p>`;
-        if (!item.is_correct) {
-            feedbackDiv.innerHTML += `<p>Explanation: ${item.explanation}</p>`;
+        feedbackDiv.innerHTML = `<p>Question ${index + 1}: ${isCorrect ? "Correct" : "Incorrect"}</p>`;
+
+        if (!isCorrect) {
+            feedbackDiv.innerHTML += `<p>Correct Answer: ${question.correct}</p>`;
+            feedbackDiv.innerHTML += `<p>Explanation: ${question.explanation}</p>`;
         }
+
         feedbackContainer.appendChild(feedbackDiv);
     });
 }
